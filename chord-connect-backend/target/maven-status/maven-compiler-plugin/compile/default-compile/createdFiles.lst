@@ -1,0 +1,8 @@
+com\chordconnect\model\Call.class
+com\chordconnect\repository\UserRepository.class
+com\chordconnect\config\WebSocketConfig.class
+com\chordconnect\service\UserService.class
+com\chordconnect\ChordConnectBackendApplication.class
+com\chordconnect\model\User.class
+com\chordconnect\controller\UserController.class
+com\chordconnect\model\Message.class
