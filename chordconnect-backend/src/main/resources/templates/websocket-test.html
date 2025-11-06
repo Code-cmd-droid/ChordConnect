@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        #messages { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll; font-family: monospace; font-size: 12px; }
+        input { padding: 8px; margin: 5px; }
+    </style>
+</head>
+<body>
+<h1>🔧 WebSocket Connection Test</h1>
+<p>Testing connection to: <code>/ws/video/{roomId}</code></p>
+
+<div>
+    <input type="text" id="roomInput" value="test-room" placeholder="Room ID">
+    <button onclick="connect()">Connect to WebSocket</button>
+    <button onclick="disconnect()" id="disconnectBtn" disabled>Disconnect</button>
+</div>
+
+<div id="status" class="status disconnected">Disconnected</div>
+
+<div>
+    <h3>WebSocket Messages:</h3>
+    <div id="messages">No messages yet...</div>
+</div>
+
+<script>
+    let ws = null;
+
+    function connect() {
+        const roomId = document.getElementById('roomInput').value || 'test-room';
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        // Use the correct WebSocket endpoint
+        const wsUrl = `${protocol}//${window.location.host}/ws/video/${roomId}`;
+
+        addMessage('SYSTEM', `Connecting to: ${wsUrl}`);
+
+        try {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function(event) {
+                updateStatus('✅ CONNECTED to WebSocket!', 'connected');
+                document.getElementById('disconnectBtn').disabled = false;
+                addMessage('SYSTEM', 'WebSocket connection established successfully!');
+
+                // Send a test message
+                setTimeout(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            type: 'TEST',
+                            message: 'Hello from WebSocket test!',
+                            timestamp: new Date().toISOString()
+                        }));
+                        addMessage('YOU', 'Sent test message');
+                    }
+                }, 1000);
+            };
+
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    addMessage('SERVER', JSON.stringify(data, null, 2));
+                } catch (e) {
+                    addMessage('SERVER', `Raw: ${event.data}`);
+                }
+            };
+
+            ws.onclose = function(event) {
+                updateStatus('❌ DISCONNECTED from WebSocket', 'disconnected');
+                document.getElementById('disconnectBtn').disabled = true;
+                addMessage('SYSTEM', `Connection closed: ${event.code} - ${event.reason || 'No reason'}`);
+            };
+
+            ws.onerror = function(error) {
+                updateStatus('❌ WebSocket ERROR', 'disconnected');
+                addMessage('SYSTEM', 'WebSocket error occurred');
+                console.error('WebSocket error:', error);
+            };
+
+        } catch (error) {
+            addMessage('SYSTEM', `Failed to create WebSocket: ${error}`);
+        }
+    }
+
+    function disconnect() {
+        if (ws) {
+            ws.close();
+            ws = null;
+            addMessage('SYSTEM', 'Manually disconnected from WebSocket');
+        }
+    }
+
+    function updateStatus(message, className) {
+        const status = document.getElementById('status');
+        status.textContent = message;
+        status.className = 'status ' + className;
+    }
+
+    function addMessage(sender, message) {
+        const messages = document.getElementById('messages');
+        const messageDiv = document.createElement('div');
+        const timestamp = new Date().toLocaleTimeString();
+        messageDiv.innerHTML = `<strong>[${timestamp}] ${sender}:</strong> ${message}`;
+        messages.appendChild(messageDiv);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    // Auto-test on page load
+    window.addEventListener('load', function() {
+        addMessage('SYSTEM', 'Page loaded. Enter a room ID and click "Connect to WebSocket"');
+    });
+</script>
+</body>
+</html>

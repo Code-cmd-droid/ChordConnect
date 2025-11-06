@@ -1,0 +1,139 @@
+/* Video Call Styles */
+.video-controls {
+    margin: 15px 0;
+    text-align: center;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.video-call-btn {
+    padding: 12px 24px;
+    margin: 0 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+#startCallBtn {
+    background: #4CAF50;
+    color: white;
+}
+
+#startCallBtn:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+}
+
+#endCallBtn {
+    background: #ff4444;
+    color: white;
+    display: none;
+}
+
+#endCallBtn:hover {
+    background: #cc0000;
+    transform: translateY(-2px);
+}
+
+.video-container {
+    display: none;
+    margin: 20px 0;
+    padding: 15px;
+    background: #1a1a1a;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.video-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.video-wrapper {
+    text-align: center;
+    background: #2a2a2a;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.video-wrapper h5 {
+    color: white;
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.video-element {
+    width: 100%;
+    max-width: 500px;
+    height: 300px;
+    background: black;
+    border: 2px solid #444;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.call-status {
+    text-align: center;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.call-status.info {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+}
+
+.call-status.error {
+    background: #ffebee;
+    color: #d32f2f;
+    border: 1px solid #ffcdd2;
+}
+
+.call-status.success {
+    background: #e8f5e8;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .video-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .video-element {
+        height: 250px;
+    }
+
+    .video-call-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+}
+
+/* Loading states */
+.video-element:not([srcObject]) {
+    background: linear-gradient(45deg, #333 25%, #444 25%, #444 50%, #333 50%, #333 75%, #444 75%);
+    background-size: 20px 20px;
+}
+
+/* Animation for video elements */
+.video-element {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.video-element:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}

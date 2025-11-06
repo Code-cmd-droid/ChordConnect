@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ChordConnect - Video Call</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; background: #1a1a2e; color: white; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .video-container { display: flex; gap: 20px; margin-bottom: 20px; }
+        .video-box { flex: 1; background: #2a2a2a; padding: 15px; border-radius: 10px; text-align: center; }
+        video { width: 100%; max-width: 400px; height: 300px; background: black; border-radius: 5px; }
+        .controls { text-align: center; margin: 20px 0; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-start { background: #4CAF50; color: white; }
+        .btn-stop { background: #f44336; color: white; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; text-align: center; }
+        .status-connected { background: #4CAF50; }
+        .status-disconnected { background: #f44336; }
+        .status-info { background: #2196F3; }
+        .debug { background: #2a2a2a; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🎵 ChordConnect Video Call</h1>
+        <p>Room: <span id="roomId">loading...</span> | User: <span id="username">loading...</span></p>
+    </div>
+
+    <div id="status" class="status status-info">Initializing...</div>
+
+    <div class="controls">
+        <button id="startBtn" class="btn-start">🎥 Start Video Call</button>
+        <button id="stopBtn" class="btn-stop" disabled>❌ Stop Call</button>
+    </div>
+
+    <div class="video-container">
+        <div class="video-box">
+            <h3>You</h3>
+            <video id="localVideo" autoplay muted></video>
+        </div>
+        <div class="video-box">
+            <h3>Friend</h3>
+            <video id="remoteVideo" autoplay></video>
+        </div>
+    </div>
+
+    <div class="debug">
+        <strong>WebSocket Connection Debug:</strong>
+        <div id="debug"></div>
+    </div>
+</div>
+
+<script>
+    // Get room info from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('room') || 'test-room';
+    const userId = urlParams.get('userId') || Math.floor(Math.random() * 10000);
+    const username = urlParams.get('username') || 'User' + userId;
+
+    document.getElementById('roomId').textContent = roomId;
+    document.getElementById('username').textContent = username;
+
+    let localStream = null;
+    let peerConnection = null;
+    let websocket = null;
+
+    function updateStatus(message, type = 'info') {
+        const status = document.getElementById('status');
+        status.textContent = message;
+        status.className = `status status-${type}`;
+        addDebug(`Status: ${message}`);
+    }
+
+    function addDebug(message) {
+        const debug = document.getElementById('debug');
+        const timestamp = new Date().toLocaleTimeString();
+        debug.innerHTML = `[${timestamp}] ${message}<br>` + debug.innerHTML;
+    }
+
+    function connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        // Use the correct WebSocket endpoint that matches your backend configuration
+        const wsUrl = `${protocol}//${window.location.host}/ws/video/${roomId}`;
+
+        updateStatus('Connecting to WebSocket...', 'info');
+        addDebug(`WebSocket URL: ${wsUrl}`);
+
+        try {
+            websocket = new WebSocket(wsUrl);
+
+            websocket.onopen = function(event) {
+                updateStatus('✅ CONNECTED to WebSocket!', 'connected');
+                addDebug('WebSocket connection opened successfully');
+                addDebug('Ready for video call');
+            };
+
+            websocket.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    addDebug(`Received: ${JSON.stringify(data)}`);
+
+                    // Handle different message types
+                    if (data.type === 'USER_JOINED') {
+                        updateStatus('👋 User joined the room!', 'connected');
+                    } else if (data.type === 'USER_LEFT') {
+                        updateStatus('User left the room', 'info');
+                    } else if (data.type === 'connected') {
+                        updateStatus('✅ Connected to room!', 'connected');
+                    }
+                } catch (e) {
+                    addDebug(`Message received: ${event.data}`);
+                }
+            };
+
+            websocket.onclose = function(event) {
+                updateStatus('❌ DISCONNECTED from WebSocket', 'disconnected');
+                addDebug(`WebSocket closed: ${event.code} - ${event.reason}`);
+            };
+
+            websocket.onerror = function(error) {
+                updateStatus('❌ WebSocket error occurred', 'disconnected');
+                addDebug('WebSocket error: ' + JSON.stringify(error));
+            };
+
+        } catch (error) {
+            updateStatus('❌ Failed to create WebSocket connection', 'disconnected');
+            addDebug('Error creating WebSocket: ' + error);
+        }
+    }
+
+    async function startCall() {
+        try {
+            updateStatus('📷 Requesting camera access...', 'info');
+            addDebug('Starting video call...');
+
+            // Get user media (camera and microphone)
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true
+            });
+
+            // Display local video
+            const localVideo = document.getElementById('localVideo');
+            localVideo.srcObject = localStream;
+
+            // Update UI
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+
+            updateStatus('✅ Camera connected! You can see yourself.', 'connected');
+            addDebug('Camera and microphone access granted');
+            addDebug('Local video stream active');
+
+            // Send message to indicate we're ready
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    type: 'READY',
+                    message: 'User is ready with camera',
+                    userId: userId,
+                    username: username
+                }));
+            }
+
+        } catch (error) {
+            updateStatus('❌ Cannot access camera: ' + error.message, 'disconnected');
+            addDebug('Camera error: ' + error.toString());
+
+            if (error.name === 'NotAllowedError') {
+                addDebug('Please allow camera and microphone permissions');
+            } else if (error.name === 'NotFoundError') {
+                addDebug('No camera found on this device');
+            } else if (error.name === 'NotSupportedError') {
+                addDebug('Browser does not support camera access');
+            }
+        }
+    }
+
+    function stopCall() {
+        // Stop local stream
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
+
+        // Clear video elements
+        document.getElementById('localVideo').srcObject = null;
+        document.getElementById('remoteVideo').srcObject = null;
+
+        // Update UI
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('stopBtn').disabled = true;
+
+        updateStatus('Call ended. Click "Start Video Call" to begin again.', 'info');
+        addDebug('Video call stopped - resources cleaned up');
+    }
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        addDebug('Page loaded - initializing WebSocket connection');
+
+        // Set up button event listeners
+        document.getElementById('startBtn').addEventListener('click', startCall);
+        document.getElementById('stopBtn').addEventListener('click', stopCall);
+
+        // Connect to WebSocket
+        connectWebSocket();
+    });
+
+    // Handle page unload
+    window.addEventListener('beforeunload', function() {
+        if (websocket) {
+            websocket.close();
+        }
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+        }
+    });
+</script>
+</body>
+</html>

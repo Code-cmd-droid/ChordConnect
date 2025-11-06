@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChordConnect - Class Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 1200px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 300px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            color: #3498db;
+        }
+
+        .user-info {
+            background: #34495e;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .user-info h3 {
+            margin-bottom: 5px;
+        }
+
+        .online-users {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #34495e;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .user-item:hover {
+            background: #3d566e;
+        }
+
+        .user-item.active {
+            background: #3498db;
+        }
+
+        /* Auth Forms */
+        .auth-form {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .auth-form input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+        }
+
+        .auth-form button {
+            width: 100%;
+            padding: 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Main Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: #ecf0f1;
+            padding: 20px;
+            border-bottom: 1px solid #bdc3c7;
+        }
+
+        .chat-header h2 {
+            color: #2c3e50;
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+
+        .message.sent {
+            background: #3498db;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 0;
+        }
+
+        .message.received {
+            background: white;
+            border: 1px solid #bdc3c7;
+            margin-right: auto;
+            border-bottom-left-radius: 0;
+        }
+
+        .message-header {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .message-content {
+            word-wrap: break-word;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #bdc3c7;
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .message-input:focus {
+            border-color: #3498db;
+        }
+
+        .send-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .send-button:hover {
+            background: #2980b9;
+        }
+
+        .send-button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        /* Video Call Button */
+        .video-call-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .video-call-btn:hover {
+            background: #c0392b;
+        }
+
+        /* Video Call Modal */
+        .video-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+        }
+
+        .video-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .video-element {
+            width: 100%;
+            height: 300px;
+            background: #2c3e50;
+            border-radius: 10px;
+        }
+
+        .call-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .end-call-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Status Indicators */
+        .connection-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .status-connected {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .status-disconnected {
+            background: #e74c3c;
+            color: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .chat-container {
+                flex-direction: column;
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 200px;
+            }
+
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="chat-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <h1>ChordConnect</h1>
+            <p>Class Chat</p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="auth-form" id="login-form">
+            <h3>Login</h3>
+            <input type="text" id="login-username" placeholder="Username" value="demo">
+            <input type="password" id="login-password" placeholder="Password" value="demo">
+            <button onclick="login()">Login</button>
+            <p style="text-align: center; margin-top: 10px; cursor: pointer; color: #3498db;" onclick="showRegister()">
+                Don't have an account? Register
+            </p>
+        </div>
+
+        <!-- Register Form -->
+        <div class="auth-form" id="register-form" style="display: none;">
+            <h3>Register</h3>
+            <input type="text" id="register-username" placeholder="Username">
+            <input type="email" id="register-email" placeholder="Email">
+            <input type="password" id="register-password" placeholder="Password">
+            <button onclick="register()">Register</button>
+            <p style="text-align: center; margin-top: 10px; cursor: pointer; color: #3498db;" onclick="showLogin()">
+                Already have an account? Login
+            </p>
+        </div>
+
+        <div class="user-info" id="user-info" style="display: none;">
+            <h3 id="current-user">Loading...</h3>
+            <p>Class: Computer Science</p>
+            <button onclick="logout()" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; margin-top: 10px; cursor: pointer;">Logout</button>
+        </div>
+
+        <div class="online-users" id="online-users" style="display: none;">
+            <h4>Online Users</h4>
+            <div id="users-list">
+                <!-- Users will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="chat-area">
+        <div class="chat-header">
+            <h2>Class Chat Room
+                <span id="connection-status" class="connection-status status-disconnected">Disconnected</span>
+            </h2>
+        </div>
+
+        <div class="messages-container" id="messages-container">
+            <!-- Messages will be populated by JavaScript -->
+        </div>
+
+        <div class="input-area">
+            <input type="text" class="message-input" id="message-input" placeholder="Type your message..." disabled>
+            <button class="video-call-btn" id="video-call-btn" disabled>Video Call</button>
+            <button class="send-button" id="send-button" disabled>Send</button>
+        </div>
+    </div>
+</div>
+
+<!-- Video Call Modal -->
+<div class="video-modal" id="video-modal">
+    <div class="video-container">
+        <div class="video-grid">
+            <video class="video-element" id="local-video" autoplay muted></video>
+            <video class="video-element" id="remote-video" autoplay></video>
+        </div>
+        <div class="call-controls">
+            <button class="end-call-btn" id="end-call-btn">End Call</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    class ChordConnectClient {
+        constructor() {
+            this.ws = null;
+            this.currentUser = null;
+            this.token = null;
+            this.roomId = 'class-chat';
+            this.reconnectAttempts = 0;
+            this.maxReconnectAttempts = 5;
+            this.localStream = null;
+            this.peerConnection = null;
+            this.backendUrl = 'http://localhost:8081'; // Updated to port 8081
+
+            this.initializeApp();
+        }
+
+        initializeApp() {
+            this.bindEvents();
+            this.checkExistingAuth();
+        }
+
+        bindEvents() {
+            // Message sending
+            document.getElementById('send-button').addEventListener('click', () => this.sendMessage());
+            document.getElementById('message-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.sendMessage();
+            });
+
+            // Video call
+            document.getElementById('video-call-btn').addEventListener('click', () => this.startVideoCall());
+            document.getElementById('end-call-btn').addEventListener('click', () => this.endVideoCall());
+
+            // Window events
+            window.addEventListener('beforeunload', () => this.cleanup());
+        }
+
+        async checkExistingAuth() {
+            const token = localStorage.getItem('chordconnect_token');
+            if (token) {
+                this.token = token;
+                await this.validateToken();
+            }
+        }
+
+        async validateToken() {
+            try {
+                const response = await fetch(`${this.backendUrl}/api/auth/validate`, {
+                    headers: {
+                        'Authorization': `Bearer ${this.token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        this.currentUser = result.data;
+                        this.showChatInterface();
+                        this.connectWebSocket();
+                        return true;
+                    }
+                }
+            } catch (error) {
+                console.error('Token validation failed:', error);
+            }
+
+            // Token is invalid
+            localStorage.removeItem('chordconnect_token');
+            this.token = null;
+            return false;
+        }
+
+        async login(username, password) {
+            try {
+                const response = await fetch(`${this.backendUrl}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.token = result.data.token;
+                    this.currentUser = result.data.user;
+
+                    // Store token
+                    localStorage.setItem('chordconnect_token', this.token);
+
+                    this.showChatInterface();
+                    this.connectWebSocket();
+                    return true;
+                } else {
+                    alert('Login failed: ' + result.message);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Login failed: ' + error.message);
+                return false;
+            }
+        }
+
+        async register(username, password, email) {
+            try {
+                const response = await fetch(`${this.backendUrl}/api/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password, email })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.token = result.data.token;
+                    this.currentUser = result.data.user;
+
+                    // Store token
+                    localStorage.setItem('chordconnect_token', this.token);
+
+                    this.showChatInterface();
+                    this.connectWebSocket();
+                    return true;
+                } else {
+                    alert('Registration failed: ' + result.message);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('Registration failed: ' + error.message);
+                return false;
+            }
+        }
+
+        logout() {
+            this.cleanup();
+            localStorage.removeItem('chordconnect_token');
+            this.token = null;
+            this.currentUser = null;
+            this.showAuthInterface();
+        }
+
+        showAuthInterface() {
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('user-info').style.display = 'none';
+            document.getElementById('online-users').style.display = 'none';
+
+            // Disable chat
+            document.getElementById('message-input').disabled = true;
+            document.getElementById('send-button').disabled = true;
+            document.getElementById('video-call-btn').disabled = true;
+        }
+
+        showChatInterface() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('user-info').style.display = 'block';
+            document.getElementById('online-users').style.display = 'block';
+
+            // Update user info
+            document.getElementById('current-user').textContent = this.currentUser.username;
+
+            // Enable chat
+            document.getElementById('message-input').disabled = false;
+            document.getElementById('send-button').disabled = false;
+            document.getElementById('video-call-btn').disabled = false;
+        }
+
+        connectWebSocket() {
+            try {
+                // Use your Spring Boot WebSocket endpoint on port 8081
+                const wsUrl = `ws://localhost:8081/ws/video/${this.roomId}`;
+                this.ws = new WebSocket(wsUrl);
+
+                this.ws.onopen = () => {
+                    console.log('WebSocket connected to Spring Boot on port 8081');
+                    this.updateConnectionStatus(true);
+                    this.reconnectAttempts = 0;
+
+                    // Send join message
+                    this.sendToServer({
+                        type: 'join',
+                        user: this.currentUser,
+                        room: this.roomId
+                    });
+                };
+
+                this.ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    this.handleMessage(data);
+                };
+
+                this.ws.onclose = (event) => {
+                    console.log('WebSocket disconnected:', event);
+                    this.updateConnectionStatus(false);
+                    this.handleReconnection();
+                };
+
+                this.ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+
+            } catch (error) {
+                console.error('Failed to connect WebSocket:', error);
+                this.handleReconnection();
+            }
+        }
+
+        handleReconnection() {
+            if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                this.reconnectAttempts++;
+                const delay = Math.min(1000 * this.reconnectAttempts, 10000);
+
+                console.log(`Reconnecting in ${delay}ms... (Attempt ${this.reconnectAttempts})`);
+
+                setTimeout(() => {
+                    this.connectWebSocket();
+                }, delay);
+            } else {
+                console.error('Max reconnection attempts reached');
+                alert('Unable to connect to chat server. Please refresh the page.');
+            }
+        }
+
+        sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+
+            if (message && this.ws?.readyState === WebSocket.OPEN) {
+                this.sendToServer({
+                    type: 'message',
+                    user: this.currentUser.username,
+                    userId: this.currentUser.id,
+                    message: message,
+                    timestamp: new Date().toISOString()
+                });
+
+                input.value = '';
+            }
+        }
+
+        handleMessage(data) {
+            console.log('Received message:', data);
+
+            switch (data.type) {
+                case 'user_joined':
+                    this.addSystemMessage(`${data.user} joined the chat`);
+                    this.updateUsersList(data.users || [data.user]);
+                    break;
+
+                case 'user_left':
+                    this.addSystemMessage(`${data.user} left the chat`);
+                    break;
+
+                case 'message':
+                    this.addChatMessage(data.user, data.message, data.timestamp, data.userId === this.currentUser.id);
+                    break;
+
+                case 'users_list':
+                    this.updateUsersList(data.users);
+                    break;
+
+                case 'video_offer':
+                    this.handleVideoOffer(data);
+                    break;
+
+                case 'video_answer':
+                    this.handleVideoAnswer(data);
+                    break;
+
+                case 'ice_candidate':
+                    this.handleIceCandidate(data);
+                    break;
+
+                case 'error':
+                    console.error('WebSocket error:', data.message);
+                    break;
+            }
+        }
+
+        addChatMessage(user, message, timestamp, isSent = false) {
+            const messagesContainer = document.getElementById('messages-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+
+            const time = new Date(timestamp).toLocaleTimeString();
+
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    ${isSent ? 'You' : user} • ${time}
+                </div>
+                <div class="message-content">${this.escapeHtml(message)}</div>
+            `;
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        addSystemMessage(message) {
+            const messagesContainer = document.getElementById('messages-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.style.cssText = `
+                background: #f39c12;
+                color: white;
+                text-align: center;
+                max-width: 100%;
+                margin: 10px auto;
+            `;
+            messageDiv.textContent = message;
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        updateUsersList(users) {
+            const usersList = document.getElementById('users-list');
+            usersList.innerHTML = '<h4>Online Users</h4>';
+
+            if (!Array.isArray(users)) {
+                users = [users];
+            }
+
+            users.forEach(user => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'user-item';
+                if (user === this.currentUser.username || user.id === this.currentUser.id) {
+                    userDiv.classList.add('active');
+                }
+                const displayName = (user === this.currentUser.username || user.id === this.currentUser.id)
+                    ? user + ' (You)'
+                    : user;
+                userDiv.textContent = displayName;
+                usersList.appendChild(userDiv);
+            });
+        }
+
+        updateConnectionStatus(connected) {
+            const status = document.getElementById('connection-status');
+            status.textContent = connected ? 'Connected' : 'Disconnected';
+            status.className = `connection-status ${connected ? 'status-connected' : 'status-disconnected'}`;
+        }
+
+        sendToServer(data) {
+            if (this.ws?.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify(data));
+            } else {
+                console.error('WebSocket is not connected');
+            }
+        }
+
+        // Video Call Functions
+        async setupMediaDevices() {
+            try {
+                this.localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+            } catch (error) {
+                console.error('Error accessing media devices:', error);
+            }
+        }
+
+        async startVideoCall() {
+            if (!this.localStream) {
+                await this.setupMediaDevices();
+            }
+
+            if (!this.localStream) {
+                alert('Cannot access camera/microphone. Please check permissions.');
+                return;
+            }
+
+            const modal = document.getElementById('video-modal');
+            const localVideo = document.getElementById('local-video');
+
+            localVideo.srcObject = this.localStream;
+            modal.style.display = 'block';
+
+            // Initialize WebRTC connection
+            await this.setupPeerConnection();
+
+            // Send video call offer to other users
+            this.sendToServer({
+                type: 'video_call_start',
+                user: this.currentUser.username,
+                userId: this.currentUser.id
+            });
+        }
+
+        async setupPeerConnection() {
+            // WebRTC setup for Spring Boot signaling
+            const configuration = {
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            };
+
+            this.peerConnection = new RTCPeerConnection(configuration);
+
+            // Add local stream
+            this.localStream.getTracks().forEach(track => {
+                this.peerConnection.addTrack(track, this.localStream);
+            });
+
+            // Handle remote stream
+            this.peerConnection.ontrack = (event) => {
+                const remoteVideo = document.getElementById('remote-video');
+                remoteVideo.srcObject = event.streams[0];
+            };
+
+            // Handle ICE candidates
+            this.peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    this.sendToServer({
+                        type: 'ice_candidate',
+                        candidate: event.candidate,
+                        roomId: this.roomId,
+                        userId: this.currentUser.id
+                    });
+                }
+            };
+        }
+
+        endVideoCall() {
+            const modal = document.getElementById('video-modal');
+            modal.style.display = 'none';
+
+            if (this.localStream) {
+                this.localStream.getTracks().forEach(track => track.stop());
+                this.localStream = null;
+            }
+
+            if (this.peerConnection) {
+                this.peerConnection.close();
+                this.peerConnection = null;
+            }
+
+            // Reset video elements
+            document.getElementById('local-video').srcObject = null;
+            document.getElementById('remote-video').srcObject = null;
+
+            this.sendToServer({
+                type: 'video_call_end',
+                user: this.currentUser.username,
+                userId: this.currentUser.id
+            });
+        }
+
+        handleVideoOffer(data) {
+            // Implement WebRTC offer handling for Spring Boot
+            console.log('Received video offer from Spring Boot:', data);
+        }
+
+        handleVideoAnswer(data) {
+            // Implement WebRTC answer handling
+            console.log('Received video answer:', data);
+        }
+
+        handleIceCandidate(data) {
+            // Implement ICE candidate handling
+            console.log('Received ICE candidate:', data);
+        }
+
+        escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        cleanup() {
+            if (this.ws) {
+                this.ws.close();
+            }
+            this.endVideoCall();
+        }
+    }
+
+    // Global functions for auth forms
+    function showRegister() {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('register-form').style.display = 'block';
+    }
+
+    function showLogin() {
+        document.getElementById('register-form').style.display = 'none';
+        document.getElementById('login-form').style.display = 'block';
+    }
+
+    async function login() {
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+
+        if (!username || !password) {
+            alert('Please enter both username and password');
+            return;
+        }
+
+        await window.chatApp.login(username, password);
+    }
+
+    async function register() {
+        const username = document.getElementById('register-username').value;
+        const email = document.getElementById('register-email').value;
+        const password = document.getElementById('register-password').value;
+
+        if (!username || !email || !password) {
+            alert('Please fill all fields');
+            return;
+        }
+
+        await window.chatApp.register(username, password, email);
+    }
+
+    function logout() {
+        window.chatApp.logout();
+    }
+
+    // Initialize the application when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        window.chatApp = new ChordConnectClient();
+    });
+</script>
+</body>
+</html>
